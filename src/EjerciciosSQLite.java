@@ -1,6 +1,7 @@
 import java.awt.List;
 import java.security.spec.PSSParameterSpec;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -485,6 +486,44 @@ public class EjerciciosSQLite {
             // Restaurar el autocommit para evitar problemas en futuras transacciones
             mysqlConnection.setAutoCommit(true);
             sqliteConnection.setAutoCommit(true);
+        }
+    }
+
+    /**
+     * Método que, para una tabla dada en una base de datos, muestre todas las
+     * claves foráneas (foreign keys) que la tabla importa. Para cada clave foránea,
+     * debe mostrar:
+     * 
+     * El nombre de la columna en la tabla actual que actúa como clave foránea.
+     * El nombre de la tabla referenciada.
+     * El nombre de la columna referenciada.
+     * 
+     * @param args
+     * @throws SQLException
+     */
+
+    public void mostrarClavesForaneas(String bd, String tableName) {
+        try {
+            // Obtener metadata de la base de datos
+            DatabaseMetaData metaData = mysqlConnection.getMetaData();
+
+            // Obtener las claves foráneas importadas para la tabla
+            // Los parámetros: catalog (bd), schemaPattern (null), tableName
+            ResultSet fk = metaData.getImportedKeys(bd, null, tableName);
+
+            // Iterar sobre las claves foráneas
+            while (fk.next()) {
+                String fkColumn = fk.getString("FKCOLUMN_NAME");
+                String pkTable = fk.getString("PKTABLE_NAME");
+                String pkColumn = fk.getString("PKCOLUMN_NAME");
+
+                System.out.printf("Clave foránea: %s, Referencia: %s(%s)%n",
+                        fkColumn, pkTable, pkColumn);
+            }
+
+            fk.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
