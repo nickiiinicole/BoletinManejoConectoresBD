@@ -28,7 +28,7 @@ public class Ejercicio1 {
                 System.out.println("Conectado a " + bd + " en " + servidor);
             } else {
                 System.out.println("No conectado a " + bd + " en servidor");
-            }
+            }          
         } catch (SQLException e) {
             System.out.println("SQLException: " + e.getLocalizedMessage());
             System.out.println("SQLState: " + e.getSQLState());

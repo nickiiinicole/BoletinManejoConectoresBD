@@ -1,4 +1,5 @@
 import java.awt.List;
+import java.security.spec.PSSParameterSpec;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -393,6 +394,100 @@ public class EjerciciosSQLite {
                 .replaceAll("ALGORITHM\\s*=\\s*\\w+", "");// Eliminar algoritm y sy
     }
 
+    /***
+     * 
+     * Realiza un
+     * método que
+     * permita insertar
+     * datos en
+     * aulas en
+     * función de
+     * su código*
+     * aunque este
+     * 
+     * ya exista (no se puede usar update)
+     * 
+     * @param code
+     * @param name
+     * @param puesto
+     */
+
+    public void insertDataSQLite(int code, String name, int puesto) {
+
+        // coomo no puedo usar el update , vamos borrar si encuentra la clave , borramos
+        String queryExist = "DELETE FROM aulas where numero = ?  ";
+        try (PreparedStatement pst = sqliteConnection.prepareStatement(queryExist)) {
+            pst.setInt(1, code);
+            int rowAffected = pst.executeUpdate();
+            System.out.println("Rows affected " + rowAffected);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        String query = "INSERT INTO AULAS (numero, nombreAula, puestos) VALUES (?,?,?)";
+        try (PreparedStatement pst = sqliteConnection.prepareStatement(query)) {
+            pst.setInt(1, code);
+            pst.setString(2, name);
+            pst.setInt(3, puesto);
+
+            int rowAffected = pst.executeUpdate();
+            System.out.println("Rows affected " + rowAffected);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    /**
+     * Realiza inserciones en ambas bases de datos.
+     * Si una falla, se deshacen los cambios en ambas.
+     * 
+     * @throws SQLException
+     */
+    public void insertarAmbasTablas(String nombreAula, int codigo, int puestos) throws SQLException {
+        String query = "INSERT INTO AULAS (numero, nombreAula, puestos) VALUES (?, ?, ?)";
+
+        // Desactivar autocommit en ambas bases de datos para manejar la transacción
+        // manualmente
+        mysqlConnection.setAutoCommit(false);
+        sqliteConnection.setAutoCommit(false);
+
+        try (PreparedStatement pstMysql = mysqlConnection.prepareStatement(query);
+                PreparedStatement pstSqlite = sqliteConnection.prepareStatement(query)) {
+
+            // Insertar en MariaDB
+            pstMysql.setInt(1, codigo);
+            pstMysql.setString(2, nombreAula);
+            pstMysql.setInt(3, puestos);
+            int rowsMysql = pstMysql.executeUpdate();
+
+            // Insertar en SQLite
+            pstSqlite.setInt(1, codigo);
+            pstSqlite.setString(2, nombreAula);
+            pstSqlite.setInt(3, puestos);
+            int rowsSqlite = pstSqlite.executeUpdate();
+
+            // Si ambas inserciones fueron exitosas, confirmamos los cambios
+            mysqlConnection.commit();
+            sqliteConnection.commit();
+
+            System.out.println(
+                    "Inserciones exitosas. Filas afectadas: MariaDB = " + rowsMysql + ", SQLite = " + rowsSqlite);
+
+        } catch (SQLException e) {
+            // Si hay un error en cualquier parte, hacemos rollback en ambas bases de datos
+            mysqlConnection.rollback();
+            sqliteConnection.rollback();
+            System.err.println("Error en la inserción, se han revertido los cambios: " + e.getMessage());
+        } finally {
+            // Restaurar el autocommit para evitar problemas en futuras transacciones
+            mysqlConnection.setAutoCommit(true);
+            sqliteConnection.setAutoCommit(true);
+        }
+    }
+
     public static void main(String[] args) {
         EjerciciosSQLite ejercicios = new EjerciciosSQLite();
         String mysqlBD = "add";
@@ -411,8 +506,9 @@ public class EjerciciosSQLite {
             // ejercicios.insertarAlumnoEnAmbasBD(11, "marcos", "gonzalez", 180, 21);
             // ejercicios.buscarAulaPorNombre("ca");
             // ejercicios.insertarEnAmbasBD(0, mysqlBD, sqliteBD, 0, 0);
-            ejercicios.insertarEnAmbasBD(23, "nick", "diaz", 0,5 );
-
+            // ejercicios.insertarEnAmbasBD(23, "nick", "diaz", 0,5 );
+            // ejercicios.insertDataSQLite(11, "Matemáticas aplicadas", 10);
+            ejercicios.insertarAmbasTablas("Calculo Diferencial", 4, 20);
             ejercicios.cerrarConexiones();
         } catch (Exception e) {
             e.printStackTrace();
